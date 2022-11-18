@@ -4,48 +4,49 @@ const asyncErrorBoundary = require("../errors/asyncErrorBoundary");
 //list all movies, if is_showing is true, only show those movies
 
 async function list(req,res) {
-    const is_showing = req.body.data.is_showing;
+    let is_showing = req.query.is_showing;
     let data;
 
     is_showing
-     ? data = await moviesService.listIsShowing()
-     : data = await moviesService.list();
+     ? (data = await moviesService.listIsShowing())
+     : (data = await moviesService.list());
 
      res.json({data: data})
 }
 
 
 async function movieIsValid(req,res,next) {
-    const movieId = req.body.data.movie_id
-    const validMovie = await moviesService.read(movieId)
+    const {movieId} = req.params;
+    const movie = await moviesService.read(Number(movieId))
 
-    if (validMovie) {
-        res.locals.validMovie = validMovie
-        return next()
+    if (movie) {
+        res.locals.movie = movie;
+        return next();
     } next({
-        status:404, message:'Movie cannot be found'
+        status:404, message:'Movie cannot be found.'
     })
     
 }
-function read(req,res) {
-    const movieId = req.body.data.movie_id;
 
-    res.json({data:movieId})
+function read(req,res) {
+    res.json({data:res.locals.movie})
 }
 
 async function theaters(req,res) {
-    const data = await moviesService.theaters(res.locals.validMovie)
+    const {movieId} = req.params
+    let data = await moviesService.theaters(movieId)
     res.json({data:data})
 }
 
 async function reviews(res,req) {
-    const data = await moviesService.reviews(res.locals.validMovie)
+    const {movieId} = req.params;
+    let data = await moviesService.reviews(movieId)
     res.json({data:data})
 }
 
 
 module.exports = {
-    list: [asyncErrorBoundary(movieIsValid), asyncErrorBoundary(list)],
+    list: [asyncErrorBoundary(list)],
     read: [asyncErrorBoundary(movieIsValid), read],
     theaters:[asyncErrorBoundary(movieIsValid), asyncErrorBoundary(theaters)],
     reviews:[asyncErrorBoundary(movieIsValid), asyncErrorBoundary(reviews)],
