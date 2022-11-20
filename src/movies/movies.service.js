@@ -1,3 +1,4 @@
+
 const knex = require("../db/connection");
 const mapProperties = require("../utils/map-properties");
 
@@ -6,20 +7,21 @@ function list() {
 }
 
 function listIsShowing() {
-    return knex('movies_theaters as mt')
-        .join('movies as m', 'm.movie_id', 'mt.movie_id')
-        .select('*')
+    return knex('movies as m')
+        .join('movies_theaters as mt', 'm.movie_id', 'mt.movie_id')
+        .select('m.*', 'mt.is_showing')
         .where('mt.is_showing', true)
+        .distinct('mt.is_showing');
 }
 
 function read(movie_id) {
-    return knex('movies as m')
+    return knex('movies')
         .select('*')
-        .where({movie_id: movie_id})
+        .where({movie_id})
         .first() //returns first row in the table
 }
 
-function theaters({movie_id}){
+function theaters(movie_id){
     return knex('movies_theaters as mt')
            .join('theaters as t', 't.theater_id', 'mt.theater_id' )
            .select('*')
@@ -27,8 +29,7 @@ function theaters({movie_id}){
 }
 
 //add critics to review
-function mapReviews(reviews) {
-    return reviews.map(
+const addCritic = 
         mapProperties({
             critic_id: 'critic.critic_id',
             preferred_name: 'critic.preferred_name',
@@ -37,14 +38,13 @@ function mapReviews(reviews) {
             created_at: 'critic.created_at',
             updated_at: 'critic.updated_at',
         })
-    )
-}
-function reviews({movie_id}) {
+    
+function reviews(movieId) {
   return knex('reviews as r')
         .join('critics as c', 'c.critic_id', 'r.critic_id')
-        .select('r.*', 'c.*')
-        .where({ 'r.movie_id': movie_id })
-        .then(mapReviews)
+        .select('*')
+        .where({ 'movie_id': movieId })
+        .then((data) => data.map(addCritic))
 }
 
 
